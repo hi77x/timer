@@ -2,8 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Секундомер</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Для полноэкранного режима на мобильных устройствах (iOS, Android) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Таймер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -21,11 +24,13 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
 
         .container {
             text-align: center;
             padding: 20px;
+            position: relative;
         }
 
         .display {
@@ -74,6 +79,7 @@
             100% { transform: rotateX(0deg); }
         }
 
+        /* Стиль для полноэкранного режима */
         .fullscreen {
             position: fixed;
             top: 0;
@@ -91,79 +97,87 @@
             display: flex;
         }
 
-        .menu-button {
-            position: fixed;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            z-index: 2000;
-        }
-
-        .menu {
-            position: fixed;
-            top: 50%;
-            right: -300px;
-            width: 300px;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            transition: right 0.3s ease;
-            z-index: 1500;
-            border-radius: 10px 0 0 10px;
-        }
-
-        .menu.active {
-            right: 0;
-        }
-
-        .rotate-device {
+        /* Оверлей для некорректной ориентации */
+        #orientationOverlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0,0,0,0.85);
+            color: #fff;
             display: none;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            z-index: 2500;
-            font-size: 24px;
+            justify-content: center;
+            z-index: 2000;
             text-align: center;
             padding: 20px;
+            cursor: pointer;
         }
 
-        @media screen and (orientation: portrait) {
-            .rotate-device {
-                display: flex;
-            }
+        /* Стиль для всплывающего меню (опции) */
+        #menuPopup {
+            position: absolute;
+            bottom: 60px; /* распологается над кнопкой меню */
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(50, 50, 50, 0.9);
+            border: 1px solid #fff;
+            border-radius: 8px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            z-index: 1100;
+        }
+
+        #menuPopup button {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            padding: 5px 10px;
+        }
+
+        /* Скрытый элемент для режима 'Только цифры' - убираем панель управления */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Дополнительное правило для fullscreen, чтобы убрать системные уведомления если возможно */
+        :fullscreen, :-webkit-full-screen {
+            overflow: hidden;
         }
     </style>
 </head>
 <body>
-    <div class="rotate-device">
-        Пожалуйста, поверните устройство горизонтально
-    </div>
-
-    <button class="menu-button" id="menuBtn">☰</button>
-    
-    <div class="menu" id="menu">
-        <div class="controls">
+    <div class="container">
+        <div class="display" id="mainDisplay">
+            <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
+        </div>
+        <div class="controls" id="controls">
             <button id="startBtn">Старт</button>
             <button id="resetBtn">Сброс</button>
-            <button id="fullscreenBtn">Только цифры</button>
+            <!-- Кнопка для меню, при нажатии будет всплывать дополнительное меню -->
+            <button id="modeBtn">Меню</button>
+            <button id="fullscreenBtn">На весь экран</button>
+        </div>
+        <!-- Всплывающее меню с опциями -->
+        <div id="menuPopup" class="menu-popup">
+            <button id="onlyDigitsBtn">Только цифры</button>
+            <button id="exitOnlyDigitsBtn">Вернуть меню</button>
         </div>
     </div>
 
-    <div class="container">
-        <div class="display">
+    <div class="fullscreen" id="fullscreenDiv">
+        <div class="display" id="fullscreenDisplay">
             <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
         </div>
     </div>
 
-    <div class="fullscreen">
-        <div class="display">
-            <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
-        </div>
+    <!-- Оверлей, показываемый когда телефон в портретной ориентации -->
+    <div id="orientationOverlay" onclick="rotateScreen()">
+        <p>Телефон не в горизонтальном положении,<br>нажмите чтобы повернуть горизонтально</p>
     </div>
 
     <script>
@@ -171,30 +185,32 @@
         tg.expand();
         tg.enableClosingConfirmation();
 
-        // Принудительная горизонтальная ориентация при запуске
-        if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(function(error) {
-                console.log('Ошибка блокировки ориентации:', error);
-            });
-        }
-
+        let isStopwatch = false;
         let isRunning = false;
+        let isOnlyDigits = false;
         let interval;
         let seconds = 0;
         let minutes = 0;
         let hours = 0;
 
-        const displays = document.querySelectorAll('.display');
+        // Элементы страницы
+        const mainDisplay = document.getElementById('mainDisplay');
+        const fullscreenDisplay = document.getElementById('fullscreenDisplay');
         const startBtn = document.getElementById('startBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const modeBtn = document.getElementById('modeBtn');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
-        const fullscreenDiv = document.querySelector('.fullscreen');
-        const menuBtn = document.getElementById('menuBtn');
-        const menu = document.getElementById('menu');
+        const fullscreenDiv = document.getElementById('fullscreenDiv');
+        const controlsDiv = document.getElementById('controls');
+        const menuPopup = document.getElementById('menuPopup');
+        const onlyDigitsBtn = document.getElementById('onlyDigitsBtn');
+        const exitOnlyDigitsBtn = document.getElementById('exitOnlyDigitsBtn');
+        const orientationOverlay = document.getElementById('orientationOverlay');
 
-        function updateDisplays() {
+        function updateDisplay() {
             const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            displays.forEach(display => {
+            // Обновляем оба дисплея
+            [mainDisplay, fullscreenDisplay].forEach(display => {
                 display.innerHTML = timeString.split('').map(char => 
                     char === ':' ? ':' : `<span class="digit">${char}</span>`
                 ).join('');
@@ -207,16 +223,37 @@
                 startBtn.textContent = 'Старт';
             } else {
                 interval = setInterval(() => {
-                    seconds++;
-                    if (seconds >= 60) {
-                        seconds = 0;
-                        minutes++;
-                        if (minutes >= 60) {
-                            minutes = 0;
-                            hours++;
+                    if (isStopwatch) {
+                        seconds++;
+                        if (seconds >= 60) {
+                            seconds = 0;
+                            minutes++;
+                            if (minutes >= 60) {
+                                minutes = 0;
+                                hours++;
+                            }
+                        }
+                    } else {
+                        if (seconds > 0 || minutes > 0 || hours > 0) {
+                            if (seconds === 0) {
+                                if (minutes > 0) {
+                                    minutes--;
+                                    seconds = 59;
+                                } else if (hours > 0) {
+                                    hours--;
+                                    minutes = 59;
+                                    seconds = 59;
+                                }
+                            } else {
+                                seconds--;
+                            }
+                        } else {
+                            clearInterval(interval);
+                            startBtn.textContent = 'Старт';
+                            isRunning = false;
                         }
                     }
-                    updateDisplays();
+                    updateDisplay();
                 }, 1000);
                 startBtn.textContent = 'Пауза';
             }
@@ -230,31 +267,108 @@
             hours = 0;
             isRunning = false;
             startBtn.textContent = 'Старт';
-            updateDisplays();
+            updateDisplay();
+        }
+
+        function toggleMode() {
+            // Переключает между секундомером и таймером
+            isStopwatch = !isStopwatch;
+            resetTimer();
+            // Обновляем заголовок кнопки в зависимости от режима
+            // Но т.к. меню уже используется для показа дополнительных опций, оставляем кнопку меню с подписью "Меню"
+            // Режим сменится в логике работы таймера, если потребуется можно добавить индикацию.
         }
 
         function toggleFullscreen() {
-            fullscreenDiv.classList.toggle('active');
-            menu.classList.remove('active');
+            if (!document.fullscreenElement) {
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                }
+                fullscreenDiv.classList.add('active');
+                tg.requestFullscreen && tg.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+                fullscreenDiv.classList.remove('active');
+                tg.exitFullscreen && tg.exitFullscreen();
+            }
         }
 
-        function toggleMenu() {
-            menu.classList.toggle('active');
-        }
-
+        // Обработка нажатий на кнопки основных контролов
         startBtn.addEventListener('click', toggleTimer);
         resetBtn.addEventListener('click', resetTimer);
         fullscreenBtn.addEventListener('click', toggleFullscreen);
-        menuBtn.addEventListener('click', toggleMenu);
 
-        document.addEventListener('dblclick', () => {
-            if (fullscreenDiv.classList.contains('active')) {
-                fullscreenDiv.classList.remove('active');
+        // Обработка нажатия кнопки меню для переключения всплывающего меню
+        modeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (menuPopup.style.display === 'flex') {
+                menuPopup.style.display = 'none';
+            } else {
+                menuPopup.style.display = 'flex';
+                menuPopup.style.flexDirection = 'column';
             }
         });
 
-        // Запуск в полноэкранном режиме Telegram
-        tg.requestFullscreen();
+        // При клике вне меню - сворачиваем его
+        document.addEventListener('click', function(e) {
+            if (!menuPopup.contains(e.target) && e.target !== modeBtn) {
+                menuPopup.style.display = 'none';
+            }
+        });
+
+        // Обработка кнопки "Только цифры"
+        onlyDigitsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            isOnlyDigits = true;
+            // Скрываем панель управления
+            controlsDiv.classList.add('hidden');
+            // Скрываем сам popup меню
+            menuPopup.style.display = 'none';
+        });
+
+        // Обработка кнопки "Вернуть меню" для выхода из режима "Только цифры"
+        exitOnlyDigitsBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            isOnlyDigits = false;
+            controlsDiv.classList.remove('hidden');
+            menuPopup.style.display = 'none';
+        });
+
+        // Двойное нажатие для выхода из полноэкранного режима
+        document.addEventListener('dblclick', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+                fullscreenDiv.classList.remove('active');
+                tg.exitFullscreen && tg.exitFullscreen();
+            }
+        });
+
+        // Функция проверки ориентации экрана
+        function checkOrientation() {
+            // Если ширина меньше высоты, значит портретная ориентация
+            if (window.innerWidth < window.innerHeight) {
+                orientationOverlay.style.display = 'flex';
+            } else {
+                orientationOverlay.style.display = 'none';
+            }
+        }
+
+        // Функция, вызываемая при нажатии на оверлей, для попытки переворота экрана
+        function rotateScreen() {
+            // Пытаемся заблокировать ориентацию на горизонтальную
+            tg.lockOrientation && tg.lockOrientation('landscape');
+            // Через небольшую задержку проверяем ориентацию
+            setTimeout(checkOrientation, 500);
+        }
+
+        window.addEventListener('resize', checkOrientation);
+        window.addEventListener('orientationchange', checkOrientation);
+
+        // Первичная проверка ориентации при загрузке
+        checkOrientation();
+        updateDisplay();
 
         // Инициализация приложения
         tg.ready();
