@@ -1,487 +1,57 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Секундомер</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            background-color: #000;
-            color: #fff;
-            font-family: Arial, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .container {
-            text-align: center;
-            padding: 20px;
-            position: relative;
-        }
-
-        .music-info {
-            position: absolute;
-            top: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 16px;
-            opacity: 0.8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 300px;
-        }
-
-        .display {
-            font-size: 80px;
-            font-weight: bold;
-            margin: 20px 0;
-            font-family: 'Digital-7', monospace;
-        }
-
-        .controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-            flex-direction: column;
-        }
-
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            border: 2px solid #fff;
-            background: rgba(0, 0, 0, 0.7);
-            color: #fff;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(5px);
-        }
-
-        button:hover {
-            background: #fff;
-            color: #000;
-            transform: scale(1.05);
-        }
-
-        .digit {
-            display: inline-block;
-            position: relative;
-            transition: transform 0.3s ease;
-        }
-
-        .digit.flip {
-            animation: flipAnimation 0.6s ease-in-out;
-        }
-
-        @keyframes flipAnimation {
-            0% { transform: rotateX(0deg); }
-            50% { transform: rotateX(90deg); }
-            100% { transform: rotateX(0deg); }
-        }
-
-        .fullscreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: #000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .fullscreen.active {
-            display: flex;
-        }
-
-        .menu-button {
-            position: fixed;
-            top: 50%;
-            right: 20px;
-            transform: translateY(-50%);
-            z-index: 2000;
-            opacity: 1;
-            transition: opacity 0.3s ease;
-        }
-
-        .menu-button.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .menu {
-            position: fixed;
-            top: 50%;
-            right: 70px;
-            transform: translateY(-50%) scale(0.9);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px;
-            z-index: 1500;
-            border-radius: 15px;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-        }
-
-        .menu.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(-50%) scale(1);
-        }
-
-        .rotate-device {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.95);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2500;
-            font-size: 24px;
-            text-align: center;
-            padding: 20px;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .rotate-device button {
-            margin-top: 20px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        @media screen and (orientation: portrait) {
-            .rotate-device {
-                display: flex;
-            }
-        }
-
-        .visualizer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 150px;
-            z-index: 1;
-        }
-
-        .music-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        .volume-slider {
-            width: 100px;
-            margin: 0 10px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-
-        .progress {
-            height: 100%;
-            background: #fff;
-            border-radius: 2px;
-            width: 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Секундомер</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="rotate-device">
-        <div>Телефон не в горизонтальном положении</div>
-        <button onclick="rotateScreen()">Нажмите чтобы повернуть горизонтально</button>
+  <div class="rotate-device">
+    <div>Телефон не в горизонтальном положении</div>
+    <button onclick="rotateScreen()">Нажмите чтобы повернуть горизонтально</button>
+  </div>
+
+  <button class="menu-button" id="menuBtn">☰</button>
+  
+  <div class="menu" id="menu">
+    <div class="controls">
+      <button id="startBtn">Старт</button>
+      <button id="resetBtn">Сброс</button>
+      <button id="fullscreenBtn">Только цифры</button>
+      <input type="file" id="audioInput" accept="audio/*" multiple style="display: none;">
+      <button id="musicBtn">Добавить музыку</button>
+      <div class="music-controls">
+        <button id="prevBtn">⏮</button>
+        <button id="playPauseBtn">⏵</button>
+        <button id="nextBtn">⏭</button>
+        <button id="repeatBtn" class="repeat-btn">🔁</button>
+        <input type="range" class="volume-slider" min="0" max="100" value="100">
+      </div>
+      <div class="progress-bar">
+        <div class="progress"></div>
+      </div>
+      <div class="playlist" id="playlist"></div>
     </div>
+  </div>
 
-    <button class="menu-button" id="menuBtn">☰</button>
-    
-    <div class="menu" id="menu">
-        <div class="controls">
-            <button id="startBtn">Старт</button>
-            <button id="resetBtn">Сброс</button>
-            <button id="fullscreenBtn">Только цифры</button>
-            <button id="musicBtn">Добавить музыку</button>
-            <div class="music-controls">
-                <button id="playPauseBtn">⏵</button>
-                <input type="range" class="volume-slider" min="0" max="100" value="100">
-                <div class="progress-bar">
-                    <div class="progress"></div>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <div class="music-info"></div>
+    <div class="display">
+      <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
     </div>
+  </div>
 
-    <div class="container">
-        <div class="music-info"></div>
-        <div class="display">
-            <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
-        </div>
+  <div class="fullscreen">
+    <div class="display">
+      <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
     </div>
+  </div>
 
-    <div class="fullscreen">
-        <div class="display">
-            <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
-        </div>
-    </div>
+  <!-- Канвас для отрисовки волны -->
+  <canvas class="visualizer"></canvas>
 
-    <canvas class="visualizer"></canvas>
-
-    <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.enableClosingConfirmation();
-
-        let audioContext, analyser, source;
-        let audio = new Audio();
-        let musicInfo = document.querySelector('.music-info');
-        let canvas = document.querySelector('.visualizer');
-        let ctx = canvas.getContext('2d');
-        let isPlaying = false;
-        let gradientColors = [
-            [255, 0, 0],
-            [255, 165, 0],
-            [255, 255, 0],
-            [0, 255, 0],
-            [0, 0, 255],
-            [238, 130, 238]
-        ];
-        let currentColorIndex = 0;
-
-        function initAudio() {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            analyser = audioContext.createAnalyser();
-            source = audioContext.createMediaElementSource(audio);
-            source.connect(analyser);
-            analyser.connect(audioContext.destination);
-            analyser.fftSize = 256;
-        }
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = 150;
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function drawVisualizer() {
-            if (!audioContext) return;
-
-            let bufferLength = analyser.frequencyBinCount;
-            let dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            let gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-            let nextColorIndex = (currentColorIndex + 1) % gradientColors.length;
-            let currentColor = gradientColors[currentColorIndex];
-            let nextColor = gradientColors[nextColorIndex];
-
-            gradient.addColorStop(0, `rgba(${currentColor.join(',')}, 0.2)`);
-            gradient.addColorStop(1, `rgba(${nextColor.join(',')}, 0.2)`);
-
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height);
-
-            for (let i = 0; i < bufferLength; i++) {
-                let x = i * (canvas.width / bufferLength);
-                let v = dataArray[i] / 128.0;
-                let y = canvas.height - v * canvas.height / 2;
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.closePath();
-            ctx.fill();
-
-            currentColorIndex = (currentColorIndex + 0.001) % gradientColors.length;
-            requestAnimationFrame(drawVisualizer);
-        }
-
-        document.getElementById('musicBtn').addEventListener('click', async () => {
-            try {
-                let fileData = await tg.downloadFile();
-                if (fileData && fileData.data) {
-                    let blob = new Blob([fileData.data], { type: 'audio/mpeg' });
-                    audio.src = URL.createObjectURL(blob);
-                    musicInfo.textContent = fileData.name || 'Музыка загружена';
-                    
-                    if (!audioContext) {
-                        initAudio();
-                    }
-                    
-                    audio.play();
-                    isPlaying = true;
-                    document.getElementById('playPauseBtn').textContent = '⏸';
-                    drawVisualizer();
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки файла:', error);
-            }
-        });
-
-        document.getElementById('playPauseBtn').addEventListener('click', () => {
-            if (isPlaying) {
-                audio.pause();
-                document.getElementById('playPauseBtn').textContent = '⏵';
-            } else {
-                audio.play();
-                document.getElementById('playPauseBtn').textContent = '⏸';
-            }
-            isPlaying = !isPlaying;
-        });
-
-        document.querySelector('.volume-slider').addEventListener('input', (e) => {
-            audio.volume = e.target.value / 100;
-        });
-
-        audio.addEventListener('timeupdate', () => {
-            let progress = (audio.currentTime / audio.duration) * 100;
-            document.querySelector('.progress').style.width = `${progress}%`;
-        });
-
-        document.querySelector('.progress-bar').addEventListener('click', (e) => {
-            let rect = e.target.getBoundingClientRect();
-            let x = e.clientX - rect.left;
-            let percentage = x / rect.width;
-            audio.currentTime = percentage * audio.duration;
-        });
-
-        function rotateScreen() {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(function(error) {
-                    console.log('Ошибка блокировки ориентации:', error);
-                });
-            }
-        }
-
-        rotateScreen();
-
-        let isRunning = false;
-        let interval;
-        let seconds = 0;
-        let minutes = 0;
-        let hours = 0;
-
-        const displays = document.querySelectorAll('.display');
-        const startBtn = document.getElementById('startBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-        const fullscreenDiv = document.querySelector('.fullscreen');
-        const menuBtn = document.getElementById('menuBtn');
-        const menu = document.getElementById('menu');
-
-        function updateDisplays() {
-            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            displays.forEach(display => {
-                display.innerHTML = timeString.split('').map(char => 
-                    char === ':' ? ':' : `<span class="digit">${char}</span>`
-                ).join('');
-            });
-        }
-
-        function toggleTimer() {
-            if (isRunning) {
-                clearInterval(interval);
-                startBtn.textContent = 'Старт';
-            } else {
-                interval = setInterval(() => {
-                    seconds++;
-                    if (seconds >= 60) {
-                        seconds = 0;
-                        minutes++;
-                        if (minutes >= 60) {
-                            minutes = 0;
-                            hours++;
-                        }
-                    }
-                    updateDisplays();
-                }, 1000);
-                startBtn.textContent = 'Пауза';
-            }
-            isRunning = !isRunning;
-        }
-
-        function resetTimer() {
-            clearInterval(interval);
-            seconds = 0;
-            minutes = 0;
-            hours = 0;
-            isRunning = false;
-            startBtn.textContent = 'Старт';
-            updateDisplays();
-        }
-
-        function toggleFullscreen() {
-            fullscreenDiv.classList.toggle('active');
-            menuBtn.classList.toggle('hidden');
-            menu.classList.remove('active');
-            musicInfo.style.visibility = fullscreenDiv.classList.contains('active') ? 'hidden' : 'visible';
-            if (fullscreenDiv.classList.contains('active')) {
-                document.documentElement.requestFullscreen().catch(console.error);
-            } else {
-                if (document.fullscreenElement) {
-                    document.exitFullscreen();
-                }
-            }
-        }
-
-        function toggleMenu() {
-            menu.classList.toggle('active');
-        }
-
-        startBtn.addEventListener('click', toggleTimer);
-        resetBtn.addEventListener('click', resetTimer);
-        fullscreenBtn.addEventListener('click', toggleFullscreen);
-        menuBtn.addEventListener('click', toggleMenu);
-
-        document.addEventListener('click', (e) => {
-            if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
-                menu.classList.remove('active');
-            }
-        });
-
-        document.addEventListener('dblclick', () => {
-            if (fullscreenDiv.classList.contains('active')) {
-                toggleFullscreen();
-            }
-        });
-
-        tg.requestFullscreen();
-        tg.ready();
-    </script>
+  <script src="script.js"></script>
 </body>
 </html>
