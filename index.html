@@ -111,10 +111,6 @@
       opacity: 1;
       transition: opacity 0.3s ease;
     }
-    .menu-button.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
     .menu {
       position: fixed;
       top: 50%;
@@ -250,13 +246,13 @@
     <button onclick="rotateScreen()">Нажмите чтобы повернуть горизонтально</button>
   </div>
 
-  <!-- Скрываем кнопку меню, т.к. в полноэкранном режиме её не нужно сразу показывать -->
-  <button class="menu-button hidden" id="menuBtn">☰</button>
+  <button class="menu-button" id="menuBtn">☰</button>
   
   <div class="menu" id="menu">
     <div class="controls">
       <button id="startBtn">Старт</button>
       <button id="resetBtn">Сброс</button>
+      <!-- При клике на эту кнопку происходит переход в полноэкранный режим -->
       <button id="fullscreenBtn">Только цифры</button>
       <input type="file" id="audioInput" accept="audio/*" multiple style="display: none;">
       <button id="musicBtn">Добавить музыку</button>
@@ -565,103 +561,46 @@
         });
       }
     }
-
     rotateScreen();
 
-    // Автоматически запускаем полноэкранный режим при загрузке
-    function requestAutoFullscreen() {
-      document.documentElement.requestFullscreen().catch(err => console.error(err));
-      // Также пробуем через Telegram WebApp
-      tg.requestFullscreen();
-      // Скрываем кнопку меню, т.к. в режиме "Только цифры" не нужна
-      document.getElementById('menuBtn').classList.add('hidden');
-    }
-    window.addEventListener('load', requestAutoFullscreen);
-
-    let isRunning = false;
-    let interval;
-    let seconds = 0;
-    let minutes = 0;
-    let hours = 0;
-    
-    const displays = document.querySelectorAll('.display');
-    const startBtn = document.getElementById('startBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
-    const fullscreenDiv = document.querySelector('.fullscreen');
-    const menuBtn = document.getElementById('menuBtn');
-    const menu = document.getElementById('menu');
-    
-    function updateDisplays() {
-      const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      displays.forEach(display => {
-        display.innerHTML = timeString.split('').map(char => char === ':' ? ':' : `<span class="digit">${char}</span>`).join('');
-      });
-    }
-    
-    function toggleTimer() {
-      if (isRunning) {
-        clearInterval(interval);
-        startBtn.textContent = 'Старт';
-      } else {
-        interval = setInterval(() => {
-          seconds++;
-          if (seconds >= 60) {
-            seconds = 0;
-            minutes++;
-            if (minutes >= 60) {
-              minutes = 0;
-              hours++;
-            }
-          }
-          updateDisplays();
-        }, 1000);
-        startBtn.textContent = 'Пауза';
-      }
-      isRunning = !isRunning;
-    }
-    
-    function resetTimer() {
-      clearInterval(interval);
-      seconds = 0;
-      minutes = 0;
-      hours = 0;
-      isRunning = false;
-      startBtn.textContent = 'Старт';
-      updateDisplays();
-    }
-    
+    // Переключение режима "Только цифры" по клику (требуется user gesture)
     function toggleFullscreen() {
+      const fullscreenDiv = document.querySelector('.fullscreen');
       fullscreenDiv.classList.toggle('active');
-      menuBtn.classList.toggle('hidden');
-      menu.classList.remove('active');
+      // Пытаемся перейти в fullscreen только если элемент активен
       if (fullscreenDiv.classList.contains('active')) {
-        document.documentElement.requestFullscreen().catch(console.error);
-        canvas.style.zIndex = 1100;
+        try {
+          document.documentElement.requestFullscreen().catch(err => console.error(err));
+        } catch (e) {
+          console.error(e);
+        }
       } else {
         if (document.fullscreenElement) {
-          document.exitFullscreen();
+          document.exitFullscreen().catch(err => console.error(err));
         }
-        canvas.style.zIndex = 1;
       }
     }
 
+    // Привязываем переключение fullscreen к кнопке "Только цифры"
+    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+    // Переключение меню
     function toggleMenu() {
+      const menu = document.getElementById('menu');
       menu.classList.toggle('active');
     }
-    
-    startBtn.addEventListener('click', toggleTimer);
-    resetBtn.addEventListener('click', resetTimer);
-    fullscreenBtn.addEventListener('click', toggleFullscreen);
-    menuBtn.addEventListener('click', toggleMenu);
+    document.getElementById('menuBtn').addEventListener('click', toggleMenu);
     
     document.addEventListener('click', (e) => {
+      const menu = document.getElementById('menu');
+      const menuBtn = document.getElementById('menuBtn');
       if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
         menu.classList.remove('active');
       }
     });
     
     document.addEventListener('dblclick', () => {
+      const fullscreenDiv = document.querySelector('.fullscreen');
       if (fullscreenDiv.classList.contains('active')) {
         toggleFullscreen();
       }
