@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Таймер</title>
+    <title>Секундомер</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -90,18 +90,71 @@
         .fullscreen.active {
             display: flex;
         }
+
+        .menu-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+        }
+
+        .menu {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            transition: right 0.3s ease;
+            z-index: 1500;
+        }
+
+        .menu.active {
+            right: 0;
+        }
+
+        .rotate-device {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2500;
+            font-size: 24px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        @media screen and (orientation: portrait) {
+            .rotate-device {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="display">
-            <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
-        </div>
+    <div class="rotate-device">
+        Пожалуйста, поверните устройство горизонтально
+    </div>
+
+    <button class="menu-button" id="menuBtn">☰</button>
+    
+    <div class="menu" id="menu">
         <div class="controls">
             <button id="startBtn">Старт</button>
             <button id="resetBtn">Сброс</button>
-            <button id="modeBtn">Режим</button>
-            <button id="fullscreenBtn">На весь экран</button>
+            <button id="fullscreenBtn">Только цифры</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="display">
+            <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
         </div>
     </div>
 
@@ -116,25 +169,27 @@
         tg.expand();
         tg.enableClosingConfirmation();
 
-        let isStopwatch = false;
         let isRunning = false;
         let interval;
         let seconds = 0;
         let minutes = 0;
         let hours = 0;
 
-        const display = document.querySelector('.display');
+        const displays = document.querySelectorAll('.display');
         const startBtn = document.getElementById('startBtn');
         const resetBtn = document.getElementById('resetBtn');
-        const modeBtn = document.getElementById('modeBtn');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const fullscreenDiv = document.querySelector('.fullscreen');
+        const menuBtn = document.getElementById('menuBtn');
+        const menu = document.getElementById('menu');
 
-        function updateDisplay() {
+        function updateDisplays() {
             const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            display.innerHTML = timeString.split('').map(char => 
-                char === ':' ? ':' : `<span class="digit">${char}</span>`
-            ).join('');
+            displays.forEach(display => {
+                display.innerHTML = timeString.split('').map(char => 
+                    char === ':' ? ':' : `<span class="digit">${char}</span>`
+                ).join('');
+            });
         }
 
         function toggleTimer() {
@@ -143,37 +198,16 @@
                 startBtn.textContent = 'Старт';
             } else {
                 interval = setInterval(() => {
-                    if (isStopwatch) {
-                        seconds++;
-                        if (seconds >= 60) {
-                            seconds = 0;
-                            minutes++;
-                            if (minutes >= 60) {
-                                minutes = 0;
-                                hours++;
-                            }
-                        }
-                    } else {
-                        if (seconds > 0 || minutes > 0 || hours > 0) {
-                            if (seconds === 0) {
-                                if (minutes > 0) {
-                                    minutes--;
-                                    seconds = 59;
-                                } else if (hours > 0) {
-                                    hours--;
-                                    minutes = 59;
-                                    seconds = 59;
-                                }
-                            } else {
-                                seconds--;
-                            }
-                        } else {
-                            clearInterval(interval);
-                            startBtn.textContent = 'Старт';
-                            isRunning = false;
+                    seconds++;
+                    if (seconds >= 60) {
+                        seconds = 0;
+                        minutes++;
+                        if (minutes >= 60) {
+                            minutes = 0;
+                            hours++;
                         }
                     }
-                    updateDisplay();
+                    updateDisplays();
                 }, 1000);
                 startBtn.textContent = 'Пауза';
             }
@@ -187,44 +221,32 @@
             hours = 0;
             isRunning = false;
             startBtn.textContent = 'Старт';
-            updateDisplay();
-        }
-
-        function toggleMode() {
-            isStopwatch = !isStopwatch;
-            resetTimer();
-            modeBtn.textContent = isStopwatch ? 'Таймер' : 'Секундомер';
+            updateDisplays();
         }
 
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen();
-                }
-                fullscreenDiv.classList.add('active');
-                tg.requestFullscreen();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-                fullscreenDiv.classList.remove('active');
-                tg.exitFullscreen();
-            }
+            fullscreenDiv.classList.toggle('active');
+            menu.classList.remove('active');
+        }
+
+        function toggleMenu() {
+            menu.classList.toggle('active');
         }
 
         startBtn.addEventListener('click', toggleTimer);
         resetBtn.addEventListener('click', resetTimer);
-        modeBtn.addEventListener('click', toggleMode);
         fullscreenBtn.addEventListener('click', toggleFullscreen);
+        menuBtn.addEventListener('click', toggleMenu);
 
         document.addEventListener('dblclick', () => {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
+            if (fullscreenDiv.classList.contains('active')) {
                 fullscreenDiv.classList.remove('active');
-                tg.exitFullscreen();
             }
         });
 
+        // Запуск в полноэкранном режиме Telegram
+        tg.requestFullscreen();
+        
         // Принудительная горизонтальная ориентация
         tg.lockOrientation('landscape');
 
