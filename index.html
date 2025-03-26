@@ -93,21 +93,23 @@
 
         .menu-button {
             position: fixed;
-            top: 20px;
+            top: 50%;
             right: 20px;
+            transform: translateY(-50%);
             z-index: 2000;
         }
 
         .menu {
             position: fixed;
-            top: 0;
+            top: 50%;
             right: -300px;
             width: 300px;
-            height: 100vh;
+            transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.9);
             padding: 20px;
             transition: right 0.3s ease;
             z-index: 1500;
+            border-radius: 10px 0 0 10px;
         }
 
         .menu.active {
@@ -168,6 +170,13 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
         tg.enableClosingConfirmation();
+
+        // Принудительная горизонтальная ориентация при запуске
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function(error) {
+                console.log('Ошибка блокировки ориентации:', error);
+            });
+        }
 
         let isRunning = false;
         let interval;
@@ -246,9 +255,6 @@
 
         // Запуск в полноэкранном режиме Telegram
         tg.requestFullscreen();
-        
-        // Принудительная горизонтальная ориентация
-        tg.lockOrientation('landscape');
 
         // Инициализация приложения
         tg.ready();
