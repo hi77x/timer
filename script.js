@@ -1,6 +1,4 @@
-let tg = window.Telegram.WebApp;
-tg.expand();
-tg.enableClosingConfirmation();
+// Убраны все обращения к Telegram API
 
 let audioContext, analyser, source;
 let audio = new Audio();
@@ -11,48 +9,14 @@ let isPlaying = false;
 let playlist = [];
 let currentTrack = 0;
 let hueRotation = 0;
-let wavePoints = [];
 const numPoints = 200;
 let isRepeat = false;
 
-// Инициализация точек волны
-for (let i = 0; i < numPoints; i++) {
-  wavePoints.push({
-    x: i * (window.innerWidth / numPoints),
-    y: 0,
-    amplitude: Math.random() * 30
-  });
-}
-
-// Загрузка плейлиста из localStorage
+// Загрузка плейлиста из localStorage (только метаданные)
 const savedPlaylist = localStorage.getItem('playlist');
-const savedFiles = localStorage.getItem('audioFiles');
-if (savedPlaylist && savedFiles) {
+if (savedPlaylist) {
   playlist = JSON.parse(savedPlaylist);
-  const files = JSON.parse(savedFiles);
-  playlist.forEach((track, index) => {
-    const base64Data = files[index];
-    if (base64Data) {
-      const blob = base64ToBlob(base64Data);
-      if (blob) {
-        track.url = URL.createObjectURL(blob);
-      }
-    }
-  });
   updatePlaylistUI();
-}
-
-function base64ToBlob(base64) {
-  if (!base64 || !base64.includes(',')) return null;
-  const parts = base64.split(',');
-  const byteString = atob(parts[1]);
-  const mimeString = parts[0].split(':')[1].split(';')[0];
-  const ab = new ArrayBuffer(byteString.length);
-  const ia = new Uint8Array(ab);
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-  return new Blob([ab], { type: mimeString });
 }
 
 function initAudio() {
@@ -67,12 +31,7 @@ function initAudio() {
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = 200;
-  wavePoints = wavePoints.map((point, i) => ({
-    ...point,
-    x: i * (window.innerWidth / numPoints)
-  }));
 }
-
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
@@ -86,20 +45,18 @@ function drawVisualizer() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   hueRotation = (hueRotation + 0.5) % 360;
   
-  // Обновляем значения точек: базовая линия у нижнего края
-  wavePoints.forEach((point, i) => {
-    const frequency = dataArray[Math.floor(i / wavePoints.length * bufferLength)] / 255;
-    point.y = frequency * 80;
-  });
-  
-  // Рисуем сплошную линию от нижнего края вверх по амплитуде
   ctx.beginPath();
   ctx.moveTo(0, canvas.height);
-  for (let i = 0; i < wavePoints.length; i++) {
-    const point = wavePoints[i];
-    let y = canvas.height - point.y;
-    ctx.lineTo(point.x, y);
+  
+  // Рисуем волну из numPoints по всей ширине канваса
+  for (let i = 0; i < numPoints; i++) {
+    let x = i * (canvas.width / (numPoints - 1));
+    let freqIndex = Math.floor(i / (numPoints - 1) * (bufferLength - 1));
+    let frequency = dataArray[freqIndex] / 255;
+    let y = canvas.height - frequency * 80;
+    ctx.lineTo(x, y);
   }
+  
   ctx.lineTo(canvas.width, canvas.height);
   ctx.closePath();
   
@@ -122,7 +79,6 @@ function updatePlaylistUI() {
     const item = document.createElement('div');
     item.className = `playlist-item ${index === currentTrack ? 'active' : ''}`;
     
-    // Название трека (по клику запускает воспроизведение)
     const title = document.createElement('span');
     title.textContent = track.name;
     title.style.flexGrow = 1;
@@ -130,7 +86,6 @@ function updatePlaylistUI() {
     title.onclick = () => playTrack(index);
     item.appendChild(title);
     
-    // Кнопка удаления
     const delBtn = document.createElement('button');
     delBtn.className = 'delete-btn';
     delBtn.textContent = '×';
@@ -148,9 +103,6 @@ function updatePlaylistUI() {
 
 function deleteTrack(index) {
   playlist.splice(index, 1);
-  // Перезаписываем сохранённые файлы, если необходимо обновить массив base64
-  const audioFiles = [];
-  localStorage.setItem('audioFiles', JSON.stringify(audioFiles));
   if (index === currentTrack) {
     audio.pause();
     isPlaying = false;
@@ -207,17 +159,8 @@ document.getElementById('musicBtn').addEventListener('click', () => {
 
 audioInput.addEventListener('change', async (e) => {
   const files = Array.from(e.target.files);
-  const audioFiles = [];
   
   for (let file of files) {
-    const reader = new FileReader();
-    const promise = new Promise((resolve) => {
-      reader.onload = (e) => resolve(e.target.result);
-    });
-    reader.readAsDataURL(file);
-    const base64Data = await promise;
-    audioFiles.push(base64Data);
-    
     const url = URL.createObjectURL(file);
     playlist.push({
       name: file.name,
@@ -225,7 +168,6 @@ audioInput.addEventListener('change', async (e) => {
     });
   }
   
-  localStorage.setItem('audioFiles', JSON.stringify(audioFiles));
   updatePlaylistUI();
   
   if (playlist.length === files.length) {
@@ -265,27 +207,36 @@ document.querySelector('.progress-bar').addEventListener('click', (e) => {
 });
 
 function rotateScreen() {
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock('landscape').catch(function(error) {
-      console.log('Ошибка блокировки ориентации:', error);
-    });
+  // Для мобильных браузеров можно попробовать запросить полноэкранный режим при клике
+  if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(console.error);
   }
 }
 
-rotateScreen();
+// Функция полноэкранного режима (режим "Только цифры")
+function toggleFullscreen() {
+  const fullscreenDiv = document.querySelector('.fullscreen');
+  const menuBtn = document.getElementById('menuBtn');
+  fullscreenDiv.classList.toggle('active');
+  menuBtn.classList.toggle('hidden');
+  document.getElementById('menu').classList.remove('active');
+  
+  if (fullscreenDiv.classList.contains('active')) {
+    document.documentElement.requestFullscreen().catch(console.error);
+  } else if (document.fullscreenElement) {
+    document.exitFullscreen();
+  }
+}
 
-let isRunning = false;
-let interval;
-let seconds = 0;
-let minutes = 0;
-let hours = 0;
-const displays = document.querySelectorAll('.display');
+function toggleMenu() {
+  document.getElementById('menu').classList.toggle('active');
+}
+
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
-const fullscreenDiv = document.querySelector('.fullscreen');
 const menuBtn = document.getElementById('menuBtn');
-const menu = document.getElementById('menu');
+const displays = document.querySelectorAll('.display');
 
 function updateDisplays() {
   const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -295,6 +246,12 @@ function updateDisplays() {
     ).join('');
   });
 }
+
+let isRunning = false;
+let interval;
+let seconds = 0;
+let minutes = 0;
+let hours = 0;
 
 function toggleTimer() {
   if (isRunning) {
@@ -328,22 +285,6 @@ function resetTimer() {
   updateDisplays();
 }
 
-function toggleFullscreen() {
-  fullscreenDiv.classList.toggle('active');
-  menuBtn.classList.toggle('hidden');
-  menu.classList.remove('active');
-  if (fullscreenDiv.classList.contains('active')) {
-    document.documentElement.requestFullscreen().catch(console.error);
-  } else {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
-  }
-}
-
-function toggleMenu() {
-  menu.classList.toggle('active');
-}
 
 startBtn.addEventListener('click', toggleTimer);
 resetBtn.addEventListener('click', resetTimer);
@@ -356,16 +297,15 @@ window.addEventListener('load', () => {
 });
 
 document.addEventListener('click', (e) => {
+  const menu = document.getElementById('menu');
   if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
     menu.classList.remove('active');
   }
 });
 
 document.addEventListener('dblclick', () => {
+  const fullscreenDiv = document.querySelector('.fullscreen');
   if (fullscreenDiv.classList.contains('active')) {
     toggleFullscreen();
   }
 });
-
-tg.requestFullscreen();
-tg.ready();
