@@ -167,7 +167,7 @@
     }
   }
   
-  /* Канвас для волны - остается поверх режима "Только цифры" */
+  /* Канвас для волны – всегда занимает всю ширину экрана */
   .visualizer {
     position: fixed;
     bottom: 0;
@@ -241,5 +241,21 @@
   
   .repeat-btn.active {
     background: rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Адаптивное меню для мобильных устройств */
+  @media screen and (max-width: 600px) {
+    .menu {
+      right: 10px;
+      left: 10px;
+      width: auto;
+      transform: translateY(0) scale(1);
+      top: 10%;
+    }
+    .menu-button {
+      top: 10px;
+      right: 10px;
+      transform: none;
+    }
   }
   
