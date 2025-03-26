@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Секундомер</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+
     body {
       background-color: #000;
       color: #fff;
@@ -22,12 +22,14 @@
       justify-content: center;
       overflow: hidden;
     }
+
     .container {
       text-align: center;
       padding: 20px;
       position: relative;
       z-index: 1500;
     }
+
     .music-info {
       position: absolute;
       top: -40px;
@@ -40,10 +42,7 @@
       text-overflow: ellipsis;
       max-width: 300px;
     }
-    /* Скрываем информацию о песне в режиме "Только цифры" */
-    .fullscreen .music-info {
-      display: none;
-    }
+
     .display {
       font-size: 80px;
       font-weight: bold;
@@ -51,6 +50,7 @@
       font-family: 'Digital-7', monospace;
       z-index: 1500;
     }
+
     .controls {
       display: flex;
       flex-direction: column;
@@ -58,6 +58,7 @@
       justify-content: center;
       margin-top: 20px;
     }
+
     button {
       padding: 12px 24px;
       font-size: 16px;
@@ -69,24 +70,29 @@
       transition: all 0.3s ease;
       backdrop-filter: blur(5px);
     }
+
     button:hover {
       background: #fff;
       color: #000;
       transform: scale(1.05);
     }
+
     .digit {
       display: inline-block;
       position: relative;
       transition: transform 0.3s ease;
     }
+
     .digit.flip {
       animation: flipAnimation 0.6s ease-in-out;
     }
+
     @keyframes flipAnimation {
       0% { transform: rotateX(0deg); }
       50% { transform: rotateX(90deg); }
       100% { transform: rotateX(0deg); }
     }
+
     .fullscreen {
       position: fixed;
       top: 0;
@@ -94,14 +100,12 @@
       width: 100vw;
       height: 100vh;
       background: #000;
-      display: none;
+      display: flex;
       justify-content: center;
       align-items: center;
       z-index: 1000;
     }
-    .fullscreen.active {
-      display: flex;
-    }
+
     .menu-button {
       position: fixed;
       top: 50%;
@@ -111,6 +115,12 @@
       opacity: 1;
       transition: opacity 0.3s ease;
     }
+
+    .menu-button.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     .menu {
       position: fixed;
       top: 50%;
@@ -126,22 +136,13 @@
       backdrop-filter: blur(10px);
       box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
     }
+
     .menu.active {
       opacity: 1;
       visibility: visible;
       transform: translateY(-50%) scale(1);
     }
-    /* Адаптивное меню для мобильных устройств */
-    @media screen and (max-width: 480px) {
-      .menu {
-        right: 10px;
-        padding: 10px;
-        font-size: 14px;
-      }
-      .menu-button {
-        right: 10px;
-      }
-    }
+
     .rotate-device {
       position: fixed;
       top: 0;
@@ -159,16 +160,19 @@
       flex-direction: column;
       gap: 20px;
     }
+
     .rotate-device button {
       margin-top: 20px;
       background: rgba(255, 255, 255, 0.1);
     }
+
     @media screen and (orientation: portrait) {
       .rotate-device {
         display: flex;
       }
     }
-    /* Визуализатор и волна: волна с фиксированной высотой и ограниченной длиной */
+
+    /* Визуализатор и волна занимают всю высоту окна */
     .visualizer {
       position: fixed;
       bottom: 0;
@@ -177,28 +181,29 @@
       height: 100vh;
       z-index: 1;
     }
+
     .wave {
       position: fixed;
       bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
+      left: 0;
       width: 1200px;
-      max-width: 1250px;
-      min-width: 1200px;
       height: 90px;
       background: transparent;
       z-index: 0;
     }
+
     .music-controls {
       display: flex;
       gap: 10px;
       align-items: center;
       margin-top: 10px;
     }
+
     .volume-slider {
       width: 100px;
       margin: 0 10px;
     }
+
     .progress-bar {
       width: 100%;
       height: 4px;
@@ -207,12 +212,14 @@
       cursor: pointer;
       margin-top: 10px;
     }
+
     .progress {
       height: 100%;
       background: #fff;
       border-radius: 2px;
       width: 0;
     }
+
     .playlist {
       max-height: 200px;
       overflow-y: auto;
@@ -221,6 +228,7 @@
       border-radius: 8px;
       padding: 10px;
     }
+
     .playlist-item {
       display: flex;
       justify-content: space-between;
@@ -229,14 +237,25 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       cursor: pointer;
     }
+
     .playlist-item:hover {
       background: rgba(255, 255, 255, 0.1);
     }
+
     .playlist-item.active {
       background: rgba(255, 255, 255, 0.2);
     }
+
     .repeat-btn.active {
       background: rgba(255, 255, 255, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .menu {
+        width: 80%;
+        right: 10%;
+        transform: translateY(-50%) scale(0.9);
+      }
     }
   </style>
 </head>
@@ -252,7 +271,6 @@
     <div class="controls">
       <button id="startBtn">Старт</button>
       <button id="resetBtn">Сброс</button>
-      <!-- При клике на эту кнопку происходит переход в полноэкранный режим -->
       <button id="fullscreenBtn">Только цифры</button>
       <input type="file" id="audioInput" accept="audio/*" multiple style="display: none;">
       <button id="musicBtn">Добавить музыку</button>
@@ -277,21 +295,17 @@
     </div>
   </div>
 
-  <div class="fullscreen">
+  <div class="fullscreen active">
     <div class="display">
       <span class="digit">00</span>:<span class="digit">00</span>:<span class="digit">00</span>
     </div>
   </div>
 
-  <!-- Дополнительный элемент wave -->
+  <!-- Дополнительный элемент wave, можно использовать для эффектов -->
   <div class="wave"></div>
   <canvas class="visualizer"></canvas>
 
   <script>
-    let tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.enableClosingConfirmation();
-
     let audioContext, analyser, source;
     let audio = new Audio();
     let musicInfo = document.querySelector('.music-info');
@@ -308,7 +322,7 @@
     // Инициализация точек волны
     for (let i = 0; i < numPoints; i++) {
       wavePoints.push({
-        x: i * (window.innerWidth / numPoints),
+        x: i * (1200 / numPoints),
         y: 0,
         amplitude: Math.random() * 30
       });
@@ -359,7 +373,7 @@
       canvas.height = window.innerHeight;
       wavePoints = wavePoints.map((point, i) => ({
         ...point,
-        x: i * (window.innerWidth / numPoints)
+        x: i * (1200 / numPoints)
       }));
     }
 
@@ -374,20 +388,15 @@
       analyser.getByteFrequencyData(dataArray);
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Плавное изменение оттенка
-      hueRotation = (hueRotation + 0.2) % 360;
-      const amplitudeFactor = canvas.height / 3;
+      hueRotation = (hueRotation + 0.5) % 360;
+      const amplitudeFactor = 90;
 
       wavePoints.forEach((point, i) => {
         const freq = dataArray[Math.floor(i / wavePoints.length * bufferLength)] / 255;
         point.y = freq * amplitudeFactor;
       });
 
-      // Настройки для более округленных краёв линии
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-
-      // Рисуем сплошную волну, начиная с нижней границы
+      // Рисуем сплошную волну, которая начинается от нижней границы
       ctx.beginPath();
       ctx.moveTo(0, canvas.height);
       for (let i = 0; i < wavePoints.length; i++) {
@@ -397,10 +406,8 @@
       ctx.lineTo(canvas.width, canvas.height);
       ctx.closePath();
 
-      // Градиент с плавным переходом
-      const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - 90);
+      const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - 100);
       gradient.addColorStop(0, `hsla(${hueRotation}, 100%, 50%, 0.5)`);
-      gradient.addColorStop(0.5, `hsla(${(hueRotation + 60) % 360}, 100%, 50%, 0.5)`);
       gradient.addColorStop(1, `hsla(${(hueRotation + 120) % 360}, 100%, 50%, 0.5)`);
 
       ctx.fillStyle = gradient;
@@ -461,7 +468,7 @@
         currentTrack = index;
         audio.src = playlist[index].url;
         musicInfo.textContent = playlist[index].name;
-        audio.play().catch(e => console.error(e)); // обработка ошибки play()
+        audio.play().catch(error => console.error('Error playing audio:', error));
         isPlaying = true;
         document.getElementById('playPauseBtn').textContent = '⏸';
         updatePlaylistUI();
@@ -488,7 +495,7 @@
     audio.addEventListener('ended', () => {
       if (isRepeat) {
         audio.currentTime = 0;
-        audio.play().catch(e => console.error(e));
+        audio.play();
       } else {
         playTrack(currentTrack + 1 < playlist.length ? currentTrack + 1 : 0);
       }
@@ -528,7 +535,7 @@
         audio.pause();
         document.getElementById('playPauseBtn').textContent = '⏵';
       } else {
-        audio.play().catch(e => console.error(e));
+        audio.play().catch(error => console.error('Error playing audio:', error));
         document.getElementById('playPauseBtn').textContent = '⏸';
         if (!audioContext) {
           initAudio();
@@ -561,52 +568,106 @@
         });
       }
     }
+
     rotateScreen();
 
-    // Переключение режима "Только цифры" по клику (требуется user gesture)
+    let isRunning = false;
+    let interval;
+    let seconds = 0;
+    let minutes = 0;
+    let hours = 0;
+    
+    const displays = document.querySelectorAll('.display');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const fullscreenDiv = document.querySelector('.fullscreen');
+    const menuBtn = document.getElementById('menuBtn');
+    const menu = document.getElementById('menu');
+    
+    function updateDisplays() {
+      const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      displays.forEach(display => {
+        display.innerHTML = timeString.split('').map(char => char === ':' ? ':' : `<span class="digit">${char}</span>`).join('');
+      });
+    }
+    
+    function toggleTimer() {
+      if (isRunning) {
+        clearInterval(interval);
+        startBtn.textContent = 'Старт';
+      } else {
+        interval = setInterval(() => {
+          seconds++;
+          if (seconds >= 60) {
+            seconds = 0;
+            minutes++;
+            if (minutes >= 60) {
+              minutes = 0;
+              hours++;
+            }
+          }
+          updateDisplays();
+        }, 1000);
+        startBtn.textContent = 'Пауза';
+      }
+      isRunning = !isRunning;
+    }
+    
+    function resetTimer() {
+      clearInterval(interval);
+      seconds = 0;
+      minutes = 0;
+      hours = 0;
+      isRunning = false;
+      startBtn.textContent = 'Старт';
+      updateDisplays();
+    }
+    
     function toggleFullscreen() {
-      const fullscreenDiv = document.querySelector('.fullscreen');
       fullscreenDiv.classList.toggle('active');
-      // Пытаемся перейти в fullscreen только если элемент активен
+      menuBtn.classList.toggle('hidden');
+      menu.classList.remove('active');
       if (fullscreenDiv.classList.contains('active')) {
-        try {
-          document.documentElement.requestFullscreen().catch(err => console.error(err));
-        } catch (e) {
-          console.error(e);
-        }
+        document.documentElement.requestFullscreen().catch(console.error);
+        canvas.style.zIndex = 1100;
+        musicInfo.style.display = 'none';
       } else {
         if (document.fullscreenElement) {
-          document.exitFullscreen().catch(err => console.error(err));
+          document.exitFullscreen();
         }
+        canvas.style.zIndex = 1;
+        musicInfo.style.display = 'block';
       }
     }
 
-    // Привязываем переключение fullscreen к кнопке "Только цифры"
-    document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
-
-    // Переключение меню
     function toggleMenu() {
-      const menu = document.getElementById('menu');
       menu.classList.toggle('active');
     }
-    document.getElementById('menuBtn').addEventListener('click', toggleMenu);
+    
+    startBtn.addEventListener('click', toggleTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    menuBtn.addEventListener('click', toggleMenu);
+    
+    window.addEventListener('load', () => {
+      menuBtn.style.display = 'block';
+      menuBtn.addEventListener('click', toggleMenu);
+    });
     
     document.addEventListener('click', (e) => {
-      const menu = document.getElementById('menu');
-      const menuBtn = document.getElementById('menuBtn');
       if (!menu.contains(e.target) && !menuBtn.contains(e.target)) {
         menu.classList.remove('active');
       }
     });
     
     document.addEventListener('dblclick', () => {
-      const fullscreenDiv = document.querySelector('.fullscreen');
       if (fullscreenDiv.classList.contains('active')) {
         toggleFullscreen();
       }
     });
     
-    tg.ready();
+    document.documentElement.requestFullscreen().catch(console.error);
   </script>
 </body>
 </html>
